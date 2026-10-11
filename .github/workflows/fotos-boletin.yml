@@ -1,0 +1,33 @@
+name: Fotos del boletín
+# Descarga las fotos listadas en boletin/<semana>/fotos.txt (una por línea: "nombre.jpg URL"),
+# las reduce a 1200 px de ancho y las guarda en esa misma carpeta para usarlas en los correos.
+on:
+  push:
+    paths: ["boletin/**/fotos.txt"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fotos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descargar y optimizar
+        run: |
+          sudo apt-get -qq install -y imagemagick >/dev/null
+          for lista in boletin/*/fotos.txt; do
+            dir=$(dirname "$lista")
+            while read -r nombre url; do
+              [ -z "$nombre" ] && continue
+              [ -f "$dir/$nombre" ] && continue
+              curl -fsSL -A "Mozilla/5.0" -e "https://www.atisu.es/" "$url" -o "/tmp/$nombre" || { echo "Fallo: $url"; continue; }
+              convert "/tmp/$nombre" -auto-orient -resize '1200x>' -strip -quality 82 "$dir/$nombre"
+              echo "OK $dir/$nombre"
+            done < "$lista"
+          done
+      - name: Guardar
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add boletin
+          git diff --cached --quiet || (git commit -m "Fotos del boletín" && git push)
