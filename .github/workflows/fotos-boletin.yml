@@ -1,6 +1,6 @@
 name: Fotos del boletín
 # Descarga las fotos listadas en boletin/<semana>/fotos.txt (una por línea: "nombre.jpg URL"),
-# las reduce a 1200 px de ancho y las guarda en esa misma carpeta para usarlas en los correos.
+# las recorta a 1200x800 (3:2) y las guarda en esa misma carpeta para usarlas en los correos.
 on:
   push:
     paths: ["boletin/**/fotos.txt"]
@@ -21,7 +21,7 @@ jobs:
               [ -z "$nombre" ] && continue
               [ -f "$dir/$nombre" ] && continue
               curl -fsSL -A "Mozilla/5.0" -e "https://www.atisu.es/" "$url" -o "/tmp/$nombre" || { echo "Fallo: $url"; continue; }
-              convert "/tmp/$nombre" -auto-orient -resize '1200x>' -strip -quality 82 "$dir/$nombre"
+              convert "/tmp/$nombre" -auto-orient -resize '1200x800^' -gravity center -extent 1200x800 -strip -quality 82 "$dir/$nombre"
               echo "OK $dir/$nombre"
             done < "$lista"
           done
